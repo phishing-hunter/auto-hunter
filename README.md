@@ -1,4 +1,4 @@
-# Phishing Hunting Automation
+# Hunting Automation
 
 本リポジトリをクローンしてセットアップを完了させれば、
 フィッシングサイトのハンティングを自動化することができます。
