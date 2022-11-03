@@ -40,3 +40,6 @@ $ vim config.yml
 $ docker-compose build
 $ docker-compose up -d
 ```
+
+## スクリーンショット
+![](./screenshots/uptimerobot.png)
