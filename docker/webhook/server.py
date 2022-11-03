@@ -4,6 +4,7 @@ import time
 import yaml
 import ngrok
 import requests
+from urllib.parse import urlencode
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 PH_API_KEY = os.environ.get("PH_API_KEY")
@@ -11,6 +12,32 @@ API_BASE_URL = os.environ.get("API_BASE_URL")
 NGROK_API = os.environ.get("NGROK_API")
 URLSCAN_API = os.environ.get("URLSCAN_API", "")
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
+UPTIMEROBOT_API_KEY=os.environ.get("UPTIMEROBOT_API_KEY", "")
+
+conf = {}
+with open("/config.yml") as f:
+    conf = yaml.safe_load(f)
+
+print(f'uptimerobot config: {conf["uptimerobot"]}')
+
+# https://uptimerobot.com/api/
+def add_uptimerobot(url, domain, conf):
+    friendly_name = domain
+    params = {
+        'url': url,
+        'api_key': UPTIMEROBOT_API_KEY,
+        'friendly_name': friendly_name,
+        'type': 2, # keyword
+        'interval': 300,
+        'timeout': 30,
+        'keyword_type': 1, # exists
+        'keyword_case_type': 1, # case insensitive
+    }
+    params.update(conf["uptimerobot"])
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    res = requests.post('https://api.uptimerobot.com/v2/newMonitor', data=urlencode(params), headers=headers)
+    print(res.json())
+    assert res.json()["stat"] == "ok"
 
 headers = {"authorization": PH_API_KEY}
 req = requests.get(f"{API_BASE_URL}/users/info", headers=headers)
@@ -24,11 +51,14 @@ def get_observation():
 
 
 def add_observation(domain):
-    url = f"https://{domain}"
-    body = {"url": url, "interval": "hour", "period": 3, "comment": "registered from auto-hunter"}
-    req = requests.post(f"{API_BASE_URL}/observation/add", data=json.dumps(body), headers=headers)
-    assert req.json()["result"] == True
-    print(f"add observation url: {url}")
+    try:
+        url = f"https://{domain}"
+        body = {"url": url, "interval": "hour", "period": 3, "comment": "registered from auto-hunter"}
+        req = requests.post(f"{API_BASE_URL}/observation/add", data=json.dumps(body), headers=headers)
+        assert req.json()["result"] == True
+        print(f"add observation url: {url}")
+    except Exception as e:
+        print(e)
 
 def set_webhook_url():
     client = ngrok.Client(NGROK_API)
@@ -81,16 +111,19 @@ class BaseHttpServer(BaseHTTPRequestHandler):
                 with open("/logs/log.json", "a") as f:
                     f.write(f"{requestBody}\n")
                 for report in body["reports"]:
+                    domain = report["domain"]
                     obs = get_observation()
                     used = len(obs["observation_urls"].keys())
                     if LIMIT > used:
-                        add_observation(report["domain"])
+                        add_observation(domain)
+                    url = f"https://{domain}"
+                    add_uptimerobot(url, domain, conf)
                     time.sleep(0.1)
                 body = "OK"
                 statusCode = 200
             except Exception as e:
-                body = "request error"
                 body = str(e)
+                print(e)
                 statusCode = 500
         self.send_response(statusCode)
         self.send_header("Content-type", "application/json")
@@ -99,9 +132,7 @@ class BaseHttpServer(BaseHTTPRequestHandler):
         self.wfile.write(body.encode())
 
 
-with open("/config.yml") as f:
-    conf = yaml.safe_load(f)
-    set_keywords(conf)
+set_keywords(conf)
 set_webhook_url()
 set_urlscan_api()
 

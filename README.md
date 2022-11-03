@@ -15,6 +15,8 @@
 	* API Key
 * [slack](https://slack.com/intl/ja-jp/help/articles/115005265063-Slack-%E3%81%A7%E3%81%AE-Incoming-Webhook-%E3%81%AE%E5%88%A9%E7%94%A8)
 	* Incoming Webhook
+* [UptimeRobot](https://uptimerobot.com/)
+	* API Key
 
 ## 環境変数の設定
 ```bash
@@ -24,6 +26,7 @@ $ echo "API_BASE_URL=https://h99x7kgf7k.execute-api.ap-northeast-1.amazonaws.com
 $ echo "PH_API_KEY=phishing hunter のAPIキー" >> .env
 $ echo "URLSCAN_API=urlscan.ioのAPIキー" >> .env
 $ echo "SLACK_WEBHOOK_URL=urlscan.ioのAPIキー" >> .env
+$ echo "UPTIMEROBOT_API_KEY=uptimebot.comのAPIキー" >> .env
 ```
 
 ## 監視キーワードの設定
