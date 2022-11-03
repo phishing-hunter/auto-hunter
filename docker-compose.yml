@@ -7,6 +7,7 @@ services:
       - ngrok
     volumes:
       - "./logs:/logs"
+      - "./config.yml:/config.yml:ro"
     env_file:
       - .env
 

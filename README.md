@@ -28,8 +28,8 @@ $ echo "SLACK_WEBHOOK_URL=urlscan.ioのAPIキー" >> .env
 
 ## 監視キーワードの設定
 ```
-$ cp config.yml.template docker/webhook/config.yml
-$ vim docker/webhook/config.yml
+$ cp config.yml.template config.yml
+$ vim config.yml
 ```
 
 ## dockerの起動
