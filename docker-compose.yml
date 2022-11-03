@@ -2,7 +2,7 @@ version: "3.4"
 
 services:
   server:
-    build: .
+    build: ./docker/webhook
     depends_on:
       - ngrok
     volumes:
