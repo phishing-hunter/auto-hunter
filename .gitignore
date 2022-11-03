@@ -36,3 +36,4 @@ sw.*
 # logs
 *.log
 *.json
+config.yml
