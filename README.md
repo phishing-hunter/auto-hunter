@@ -17,8 +17,12 @@
 	* Incoming Webhook
 * [UptimeRobot](https://uptimerobot.com/)
 	* API Key
+* [Shodan](https://www.shodan.io) (オプション)
+	* API Key
 
 ## 環境変数の設定
+
+### 必須
 ```bash
 $ echo "NGROK_AUTH=ngrokのauth key" > .env
 $ echo "NGROK_API=ngrokのAPI key NGROK_AUTHではありません" >> .env
@@ -27,6 +31,10 @@ $ echo "PH_API_KEY=phishing hunter のAPIキー" >> .env
 $ echo "URLSCAN_API=urlscan.ioのAPIキー" >> .env
 $ echo "SLACK_WEBHOOK_URL=urlscan.ioのAPIキー" >> .env
 $ echo "UPTIMEROBOT_API_KEY=uptimebot.comのAPIキー" >> .env
+```
+### オプション
+```bash
+$ echo "SHODAN_API_KEY=shodanのAPIキー" >> .env
 ```
 
 ## 監視キーワードの設定

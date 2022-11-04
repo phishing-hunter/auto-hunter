@@ -13,6 +13,7 @@ NGROK_API = os.environ.get("NGROK_API")
 URLSCAN_API = os.environ.get("URLSCAN_API", "")
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
 UPTIMEROBOT_API_KEY=os.environ.get("UPTIMEROBOT_API_KEY", "")
+SHODAN_API_KEY=os.environ.get("SHODAN_API_KEY", "")
 
 conf = {}
 with open("/config.yml") as f:
@@ -93,9 +94,10 @@ def set_keywords(conf):
 
 def set_urlscan_api():
     headers = {"authorization": PH_API_KEY}
-    body = {"api_keys": {"urlscan": URLSCAN_API}}
+    body = {"api_keys": {"urlscan": URLSCAN_API, "shodan": SHODAN_API_KEY}}
     req = requests.post(f"{API_BASE_URL}/apikeys", data=json.dumps(body), headers=headers)
     print(f"set urlscan.io apikey ({URLSCAN_API})")
+    print(f"set shodan.io apikey ({SHODAN_API_KEY})")
     assert req.json()["result"] == True
 
 
