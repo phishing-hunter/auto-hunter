@@ -87,7 +87,7 @@ def set_webhook_url():
 def set_keywords(conf):
     print(f"set keywords {conf['keywords']}")
     headers = {"authorization": PH_API_KEY}
-    body = {"keywords": conf["keywords"], "target_score": conf["target_score"]}
+    body = {"keywords": {"domain": conf["keywords"], "dom": []}, "target_score": conf["target_score"]}
     req = requests.post(f"{API_BASE_URL}/keywords", data=json.dumps(body), headers=headers)
     assert req.json()["result"] == True
 
