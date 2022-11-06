@@ -3,7 +3,7 @@ keywords:
     - paypal
     - amazon
   dom:
-    - pay
+    - ログイン
 target_score: 100
 uptimerobot:
   keyword_value: "pay"
