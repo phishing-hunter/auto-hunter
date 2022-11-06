@@ -54,7 +54,7 @@ def get_observation():
 def add_observation(domain):
     try:
         url = f"https://{domain}"
-        body = {"url": url, "interval": "hour", "period": 3, "comment": "registered from auto-hunter"}
+        body = {"url": url, "interval": "hour", "period": 3, "comment": "registered from auto-hunter", "expire": int(time.time()+60*60*12)}
         req = requests.post(f"{API_BASE_URL}/observation/add", data=json.dumps(body), headers=headers)
         assert req.json()["result"] == True
         print(f"add observation url: {url}")
@@ -87,7 +87,7 @@ def set_webhook_url():
 def set_keywords(conf):
     print(f"set keywords {conf['keywords']}")
     headers = {"authorization": PH_API_KEY}
-    body = {"keywords": {"domain": conf["keywords"], "dom": []}, "target_score": conf["target_score"]}
+    body = {"keywords": conf["keywords"], "target_score": conf["target_score"]}
     req = requests.post(f"{API_BASE_URL}/keywords", data=json.dumps(body), headers=headers)
     assert req.json()["result"] == True
 

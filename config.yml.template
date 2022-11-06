@@ -1,6 +1,9 @@
 keywords:
-  - paypal
-  - amazon
+  domain:
+    - paypal
+    - amazon
+  dom:
+    - pay
 target_score: 100
 uptimerobot:
   keyword_value: "pay"
