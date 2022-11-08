@@ -26,7 +26,7 @@
 ```bash
 $ echo "NGROK_AUTH=ngrokのauth key" > .env
 $ echo "NGROK_API=ngrokのAPI key NGROK_AUTHではありません" >> .env
-$ echo "API_BASE_URL=https://h99x7kgf7k.execute-api.ap-northeast-1.amazonaws.com/prod" >> .env
+$ echo "API_BASE_URL=https://api.phishing-hunter.com/v1" >> .env
 $ echo "PH_API_KEY=phishing hunter のAPIキー" >> .env
 $ echo "URLSCAN_API=urlscan.ioのAPIキー" >> .env
 $ echo "SLACK_WEBHOOK_URL=urlscan.ioのAPIキー" >> .env
