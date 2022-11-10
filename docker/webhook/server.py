@@ -3,6 +3,7 @@ import json
 import time
 import yaml
 import ngrok
+import gitlab
 import requests
 from urllib.parse import urlencode
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -12,8 +13,10 @@ API_BASE_URL = os.environ.get("API_BASE_URL")
 NGROK_API = os.environ.get("NGROK_API")
 URLSCAN_API = os.environ.get("URLSCAN_API", "")
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
-UPTIMEROBOT_API_KEY=os.environ.get("UPTIMEROBOT_API_KEY", "")
-SHODAN_API_KEY=os.environ.get("SHODAN_API_KEY", "")
+UPTIMEROBOT_API_KEY = os.environ.get("UPTIMEROBOT_API_KEY", "")
+SHODAN_API_KEY = os.environ.get("SHODAN_API_KEY", "")
+PROJECT_ID = os.environ.get("GITLAB_PROJECT_ID")
+ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
 
 conf = {}
 with open("/config.yml") as f:
@@ -25,20 +28,25 @@ print(f'uptimerobot config: {conf["uptimerobot"]}')
 def add_uptimerobot(url, domain, conf):
     friendly_name = domain
     params = {
-        'url': url,
-        'api_key': UPTIMEROBOT_API_KEY,
-        'friendly_name': friendly_name,
-        'type': 2, # keyword
-        'interval': 300,
-        'timeout': 30,
-        'keyword_type': 1, # exists
-        'keyword_case_type': 1, # case insensitive
+        "url": url,
+        "api_key": UPTIMEROBOT_API_KEY,
+        "friendly_name": friendly_name,
+        "type": 2,  # keyword
+        "interval": 300,
+        "timeout": 30,
+        "keyword_type": 1,  # exists
+        "keyword_case_type": 1,  # case insensitive
     }
     params.update(conf["uptimerobot"])
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    res = requests.post('https://api.uptimerobot.com/v2/newMonitor', data=urlencode(params), headers=headers)
+    res = requests.post(
+        "https://api.uptimerobot.com/v2/newMonitor",
+        data=urlencode(params),
+        headers=headers,
+    )
     print(res.json())
     assert res.json()["stat"] == "ok"
+
 
 headers = {"authorization": PH_API_KEY}
 req = requests.get(f"{API_BASE_URL}/users/info", headers=headers)
@@ -54,12 +62,21 @@ def get_observation():
 def add_observation(domain):
     try:
         url = f"https://{domain}"
-        body = {"url": url, "interval": "hour", "period": 3, "comment": "registered from auto-hunter", "expire": int(time.time()+60*60*12)}
-        req = requests.post(f"{API_BASE_URL}/observation/add", data=json.dumps(body), headers=headers)
+        body = {
+            "url": url,
+            "interval": "hour",
+            "period": 3,
+            "comment": "registered from auto-hunter",
+            "expire": int(time.time() + 60 * 60 * 12),
+        }
+        req = requests.post(
+            f"{API_BASE_URL}/observation/add", data=json.dumps(body), headers=headers
+        )
         assert req.json()["result"] == True
         print(f"add observation url: {url}")
     except Exception as e:
         print(e)
+
 
 def set_webhook_url():
     client = ngrok.Client(NGROK_API)
@@ -101,6 +118,36 @@ def set_urlscan_api():
     assert req.json()["result"] == True
 
 
+def create_gitlab_issue(report):
+    try:
+        gitlab_url = "https://gitlab.com/"
+        gl = gitlab.Gitlab(gitlab_url, api_version=4, private_token=ACCESS_TOKEN)
+        project = gl.projects.get(PROJECT_ID)
+        report_url = report["report_url"]
+        screenshot_url = report["screenshot_url"]
+        domain = report["domain"]
+        desc = f"""
+[レポート]({report_url})
+![]({screenshot_url})
+domain: `{domain}`  
+ip: `{",".join(report.get("answers", []))}`  
+[whois]
+```
+{json.dumps(report.get("whois", {}), indent=4, ensure_ascii=False)}
+```
+
+[geo]
+```
+{json.dumps(report.get("geo", {}), indent=4, ensure_ascii=False)}
+```
+
+"""
+        new_issue = project.issues.create({"title": domain, "description": desc})
+        print(new_issue.id)
+    except Exception as e:
+        print(e)
+
+
 class BaseHttpServer(BaseHTTPRequestHandler):
     def do_POST(self):
         body = ""
@@ -114,6 +161,7 @@ class BaseHttpServer(BaseHTTPRequestHandler):
                     f.write(f"{requestBody}\n")
                 for report in body["reports"]:
                     domain = report["domain"]
+                    create_gitlab_issue(report)
                     obs = get_observation()
                     used = len(obs["observation_urls"].keys())
                     if LIMIT > used:
