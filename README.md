@@ -13,9 +13,9 @@
 	* Auth Key
 * [urlscan.io](https://urlscan.io/)
 	* API Key
-* [slack](https://slack.com/intl/ja-jp/help/articles/115005265063-Slack-%E3%81%A7%E3%81%AE-Incoming-Webhook-%E3%81%AE%E5%88%A9%E7%94%A8)
-	* Incoming Webhook
-* [UptimeRobot](https://uptimerobot.com/)
+* [gitlab.com](https://gitlab.com/)
+	* API Key
+* [UptimeRobot](https://uptimerobot.com/) (オプション)
 	* API Key
 * [Shodan](https://www.shodan.io) (オプション)
 	* API Key
@@ -29,11 +29,13 @@ $ echo "NGROK_API=ngrokのAPI key NGROK_AUTHではありません" >> .env
 $ echo "API_BASE_URL=https://api.phishing-hunter.com/v1" >> .env
 $ echo "PH_API_KEY=phishing hunter のAPIキー" >> .env
 $ echo "URLSCAN_API=urlscan.ioのAPIキー" >> .env
-$ echo "SLACK_WEBHOOK_URL=urlscan.ioのAPIキー" >> .env
-$ echo "UPTIMEROBOT_API_KEY=uptimebot.comのAPIキー" >> .env
+$ echo "GITLAB_PROJECT_ID=プロジェクトID" >> .env
+$ echo "GITLAB_ACCESS_TOKEN=パーソナルアクセストークン" >> .env
 ```
+
 ### オプション
 ```bash
+$ echo "UPTIMEROBOT_API_KEY=uptimebot.comのAPIキー" >> .env
 $ echo "SHODAN_API_KEY=shodanのAPIキー" >> .env
 ```
 
