@@ -3,6 +3,8 @@ import json
 import time
 import yaml
 import ngrok
+import string
+import random
 import gitlab
 import requests
 from urllib.parse import urlencode
@@ -18,34 +20,38 @@ SHODAN_API_KEY = os.environ.get("SHODAN_API_KEY", "")
 PROJECT_ID = os.environ.get("GITLAB_PROJECT_ID")
 ACCESS_TOKEN = os.environ.get("GITLAB_ACCESS_TOKEN")
 
+random_path = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
 conf = {}
 with open("/config.yml") as f:
     conf = yaml.safe_load(f)
 
-print(f'uptimerobot config: {conf["uptimerobot"]}')
+print(f'uptimerobot config: {conf.get("uptimerobot", {})}')
 
 # https://uptimerobot.com/api/
 def add_uptimerobot(url, domain, conf):
-    friendly_name = domain
-    params = {
-        "url": url,
-        "api_key": UPTIMEROBOT_API_KEY,
-        "friendly_name": friendly_name,
-        "type": 2,  # keyword
-        "interval": 300,
-        "timeout": 30,
-        "keyword_type": 1,  # exists
-        "keyword_case_type": 1,  # case insensitive
-    }
-    params.update(conf["uptimerobot"])
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    res = requests.post(
-        "https://api.uptimerobot.com/v2/newMonitor",
-        data=urlencode(params),
-        headers=headers,
-    )
-    print(res.json())
-    assert res.json()["stat"] == "ok"
+    try:
+        friendly_name = domain
+        params = {
+            "url": url,
+            "api_key": UPTIMEROBOT_API_KEY,
+            "friendly_name": friendly_name,
+            "type": 2,  # keyword
+            "interval": 300,
+            "timeout": 30,
+            "keyword_type": 1,  # exists
+            "keyword_case_type": 1,  # case insensitive
+        }
+        params.update(conf["uptimerobot"])
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        res = requests.post(
+            "https://api.uptimerobot.com/v2/newMonitor",
+            data=urlencode(params),
+            headers=headers,
+        )
+        print(res.json())
+        assert res.json()["stat"] == "ok"
+    except Exception as e:
+        print(e)
 
 
 headers = {"authorization": PH_API_KEY}
@@ -59,14 +65,14 @@ def get_observation():
     return req.json()
 
 
-def add_observation(domain):
+def add_observation(domain, comment="registered from auto-hunter"):
     try:
         url = f"https://{domain}"
         body = {
             "url": url,
             "interval": "hour",
             "period": 3,
-            "comment": "registered from auto-hunter",
+            "comment": comment,
             "expire": int(time.time() + 60 * 60 * 12),
         }
         req = requests.post(
@@ -89,14 +95,17 @@ def set_webhook_url():
 
     assert public_url != ""
 
-    webhook_url = f"{public_url}/webhook"
-    print(f"set keyword webhook: {webhook_url}")
+    webhook_url = f"{public_url}/{random_path}/hunting"
+    print(f"set hunting webhook: {webhook_url}")
     headers = {"authorization": PH_API_KEY}
-    body = {"type": "custom", "webhook_url": webhook_url, "service": "keyword"}
+    body = {"type": "custom", "webhook_url": webhook_url, "service": "hunting"}
     req = requests.post(f"{API_BASE_URL}/notify", data=json.dumps(body), headers=headers)
     assert req.json()["result"] == True
-    print(f"set observation webhook: {SLACK_WEBHOOK_URL}")
-    body = {"type": "slack", "webhook_url": SLACK_WEBHOOK_URL, "service": "observation"}
+    #print(f"set observation webhook: {SLACK_WEBHOOK_URL}")
+    #body = {"type": "slack", "webhook_url": SLACK_WEBHOOK_URL, "service": "observation"}
+    webhook_url = f"{public_url}/{random_path}/observation"
+    print(f"set observation webhook: {webhook_url}")
+    body = {"type": "custom", "webhook_url": webhook_url, "service": "observation"}
     req = requests.post(f"{API_BASE_URL}/notify", data=json.dumps(body), headers=headers)
     assert req.json()["result"] == True
 
@@ -143,32 +152,48 @@ ip: `{",".join(report.get("answers", []))}`
 
 """
         new_issue = project.issues.create({"title": domain, "description": desc})
-        print(new_issue.id)
+        print(f"{domain} issue_id:{new_issue.iid}")
+        return new_issue.iid
     except Exception as e:
         print(e)
+    return 0
 
 
 class BaseHttpServer(BaseHTTPRequestHandler):
     def do_POST(self):
         body = ""
         statusCode = 404
-        if self.path == "/webhook":
+        if self.path == f"/{random_path}/hunting":
             try:
                 content_len = int(self.headers.get("content-length").encode())
                 requestBody = self.rfile.read(content_len).decode("utf-8")
                 body = json.loads(requestBody)
-                with open("/logs/log.json", "a") as f:
+                with open("/logs/hunting.json", "a") as f:
                     f.write(f"{requestBody}\n")
                 for report in body["reports"]:
                     domain = report["domain"]
-                    create_gitlab_issue(report)
+                    issue_id = create_gitlab_issue(report)
                     obs = get_observation()
                     used = len(obs["observation_urls"].keys())
                     if LIMIT > used:
-                        add_observation(domain)
+                        add_observation(domain, comment=json.dumps({"issue_id": issue_id}))
                     url = f"https://{domain}"
                     add_uptimerobot(url, domain, conf)
                     time.sleep(0.1)
+                body = "OK"
+                statusCode = 200
+            except Exception as e:
+                body = str(e)
+                print(e)
+                statusCode = 500
+
+        if self.path == f"/{random_path}/observation":
+            try:
+                content_len = int(self.headers.get("content-length").encode())
+                requestBody = self.rfile.read(content_len).decode("utf-8")
+                body = json.loads(requestBody)
+                with open("/logs/observation.json", "a") as f:
+                    f.write(f"{requestBody}\n")
                 body = "OK"
                 statusCode = 200
             except Exception as e:
